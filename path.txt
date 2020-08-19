@@ -1,5 +1,6 @@
 upload/
 Upload/
+uploads/
 download/
 bak/
 core/
@@ -24,3 +25,4 @@ css/
 system/
 application/
 js/
+dir/

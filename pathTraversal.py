@@ -1,9 +1,9 @@
 # coding=utf-8
+from threadpool import ThreadPool,makeRequests
 import requests
 import sys
 import re
 import time
-import threading
 import os
 import sys
 
@@ -28,6 +28,7 @@ http="http://"
 domains=[]
 dict=[]
 res=[]
+pool = ThreadPool(max_thread) # 设置线程池
 headers = {
             "User-Agent":"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50"
         }
@@ -67,7 +68,7 @@ def target(res,dic):
     return False
 
 #扫描模块
-def scan(domain):
+def scan(domain,timeout=1):
     for dictionary in dict:
         http_req_url=http+domain+'/'+dictionary
         https_req_url=https+domain+'/'+dictionary
@@ -79,7 +80,7 @@ def scan(domain):
                 if clear(domain) and target(resHttp.text,dictionary): 
                     print(http_req_url)
                     res.append(http_req_url+'\n')
-            time.sleep(1)
+            time.sleep(timeout)
         except:
             pass
         try:
@@ -99,29 +100,16 @@ if __name__=="__main__":
     getDict("path.txt")
     #获取域名
     getDomain(sys.argv[1])
-    thread=[]
-    #多线程调用
-    #daemon参数，主线程随子线程结束还是子线程随主线程结束,默认为False
-    start=time.time()
-    for domain in domains:
-        t=threading.Thread(target=scan,args=(domain,),daemon=True)
-        thread.append(t)
     
-    #维持线程队列
-    for t in thread:
-        t.start()
-        while True:
-            if len(threading.enumerate())<=max_thread:
-                time.sleep(1)
-                break
-            
-    while True:
-        if len(threading.enumerate())<2:
-            break
-        time.sleep(10)
-        
+    timeout=int(sys.argv[2]) if len(sys.argv)>2 else 1
+    start=time.time()
+    
+    params = [([d, timeout], None) for d in domains]
+    request = makeRequests(scan, params)
+    [pool.putRequest(req) for req in request]
+    pool.wait()
+    
     print('Detection over in '+str(time.time()-start).split('.')[0]+'s')
-
     #保存检测结果
     with open('result.txt','w') as f:
         for line in res:
